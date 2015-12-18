@@ -66,10 +66,10 @@ __all__ = ['hill_climbing']
 
 # returns a seed set of size 'seed_size' that maximizes the influence in the network
 def hill_climbing(G, seed_size, model="OIC", inf_sets = None, num_sim = 1000, randomSeed=31101982, resolution=3000000):
-    if num_sim is None:
+    if model == "OIC" and num_sim is None:
         return None
 
-    if num_sim < 1:
+    if model == "OIC" and num_sim < 1:
         return None
 
     nNodes = G.number_of_nodes()
