@@ -74,3 +74,5 @@ from .tree.branchings import (
 	maximum_branching, minimum_branching,
 	maximum_spanning_arborescence, minimum_spanning_arborescence
 )
+
+from networkx.algorithms.influence_maximization import *
