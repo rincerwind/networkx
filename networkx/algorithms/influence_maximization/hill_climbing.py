@@ -6,9 +6,14 @@ Hill Climbing for Influence Maximization
 A basic greedy algorithm for influence maximization
 """
 
-import networkx as nx
+
 from collections import deque
+from murmur3 import *
+
+import networkx as nx
+import copy
 import random
+
 
 __author__ = """\n""".join(['Toni Andreev <rincerwind@gmail.com>'])
 __all__ = ['hill_climbing']
@@ -31,8 +36,17 @@ __all__ = ['hill_climbing']
        		- Linear Threshold (LT)
        		- Online Independent Cascade (OIC) (Default)
 
+    inf_sets: list of lists of integers, optional
+        When given an IC or LT model, the user should also provide the influence sets of each vertex
+
     num_sim: integer, optional
     	The number of Monte Carlo simulations
+
+    randomSeed: unsigned 32bit integer, optional
+        Used with a uniform hash function to yield a probability of an edge existing in a propagation instance
+
+    resolution: unsigned 32bit integer, optional
+        Brings the result of the hash function to a range of values
 
     Returns
     -------
@@ -42,7 +56,7 @@ __all__ = ['hill_climbing']
     Examples
     --------
     >>> G = nx.DiGraph()
-    >>> G.add_edges_from([(1,2),(3,2),(3,1),(4,2),(3,5),(6,5),(5,6),(7,6),(6,8),(8,6),(7,8),(8,7),(9,6),(10,9),(11,10),(11,12),(13,11)], act_prob=0.6)
+    >>> G.add_edges_from([(1,2),(3,2),(3,1),(4,2),(3,5),(6,5),(5,6),(7,6),(6,8),(8,6),(7,8),(8,7),(9,6),(10,9),(11,10),(11,12),(13,11)], act_prob=1.0)
 
     Notes
     -----
@@ -50,54 +64,64 @@ __all__ = ['hill_climbing']
     by David Kempe, Jon Kleinberg, and Eva Tardos.
 """
 
+# returns a seed set of size 'seed_size' that maximizes the influence in the network
 def hill_climbing(G, seed_size, model="OIC", inf_sets = None, num_sim = 1000, randomSeed=31101982, resolution=3000000):
-	if num_sim is None:
-		return
+    if num_sim is None:
+        return None
 
-	nNodes = G.number_of_nodes()
-	nodes = G.nodes()
-	seed_set = set()
-	max_inf_set = set()
+    if num_sim < 1:
+        return None
 
-	for i in range(1, seed_size + 1):
+    nNodes = G.number_of_nodes()
+    seed_set = set()
+    max_inf_set = set()
 
-		best_w = None
-		best_inf = 0
-		for w in nodes:
-			if w in seed_set:
-				continue
+    if nNodes < 1:
+        return None
 
-			if model == "OIC" and num_sim > 0:
-				w_inf = find_OIC_inf(G, nNodes, seed_set, w, num_sim, randomSeed, resolution)
+    for i in range(1, seed_size + 1):
+        best_w = None
+        best_inf = 0
+        nodes = G.nodes()
+        for w in nodes:
+            if w in seed_set:
+                continue
 
-			elif model == "IC" and num_sim > 0:
-				# TO DO
-				return
-			elif model == "LT" and num_sim > 0:
-				# TO DO
-				return
+            if model == "OIC":
+                w_inf = find_OIC_inf(G, nNodes, seed_set, w, num_sim, randomSeed, resolution)
 
-			if best_inf < w_inf:
-				best_inf = w_inf
-				best_w = w
+            elif model == "IC":
+                # TO DO
+                # w_inf = func
+                return
+            else:
+                # LT model
+                # TO DO
+                # w_inf = func
+                return
 
-		seed_set.add(best_w)
+            if best_inf < w_inf:
+                best_inf = w_inf
+                best_w = w
 
-	return seed_set
+        seed_set.add(best_w)
+
+    return seed_set
 
 # computes the influence of the seed set when w is added to it
 def find_OIC_inf(G, nNodes, seed_set, w, l, randomSeed, resolution):
-    seedSet = set(seed_set)
+    seedSet = copy.deepcopy(seed_set)
     seedSet.add(w)
-    covered = [set()] * (l+1)
-    visited = set()
+
+    covered = [set()] * (l+1)   # covered per propagation instance
+    visited = set()             # visited in current propagation instance
     to_visit = deque()
 
     inf = 0
     for s in seedSet:
         size = 0
 
-        for i in range(1,l+1):
+        for i in range(1,l+1):  # iterate over propagation instances
             if s in covered[i]:
                 continue
 
@@ -105,6 +129,7 @@ def find_OIC_inf(G, nNodes, seed_set, w, l, randomSeed, resolution):
             visited.add(s)
             to_visit.clear()
             to_visit.append(s)
+            # BFS from s
             while len(to_visit) > 0:
                 u = to_visit.popleft()
                 covered[i].add(u)
@@ -118,51 +143,7 @@ def find_OIC_inf(G, nNodes, seed_set, w, l, randomSeed, resolution):
         inf += float(size)/l
     return inf
 
+# checks whether 'src->dest' exists in instance 'inst' when there are 'nInst' instances
 def ContainsEdge(G, src, dest, inst, nInst, randomSeed, resolution):
     hash_prob = murmurHash3(src, dest, inst, nInst, randomSeed) % resolution
-    return hash_prob < G[src][dest]['act_prob']
-
-def murmurHash3(u,v,i,l, randomSeed):
-    h = (randomSeed<<16)+l
-    
-    c1 = 0xcc9e2d51
-    c2 = 0x1b873593
-
-    # Hash the first vertex
-    k = u
-    k = (c1 * k) & 0xFFFFFFFF
-    k = ( k << 15 | k >> 17 ) & 0xFFFFFFFF
-    k = ( c2 * k ) & 0xFFFFFFFF
-    h ^= k
-    h = ( h << 13 | h >> 19 ) & 0xFFFFFFFF
-    h = ( h * 5 + 0xe6546b64 ) & 0xFFFFFFFF
-
-    # Hash the second vertex
-    k = v
-    k = (c1 * k) & 0xFFFFFFFF
-    k = ( k << 15 | k >> 17 ) & 0xFFFFFFFF
-    k = ( c2 * k ) & 0xFFFFFFFF
-    h ^= k
-    h = ( h << 13 | h >> 19 ) & 0xFFFFFFFF
-    h = ( h * 5 + 0xe6546b64 ) & 0xFFFFFFFF
-
-    # Hash the instance
-    k = i
-    k = (c1 * k) & 0xFFFFFFFF
-    k = ( k << 15 | k >> 17 ) & 0xFFFFFFFF
-    k = ( c2 * k ) & 0xFFFFFFFF
-    h ^= k
-
-    # Mix the results
-    h ^= 10
-    h ^= (h >> 16)
-    h = ( h * 0x85ebca6b ) & 0xFFFFFFFF
-    h ^= (h >> 13)
-    h = ( h * 0xc2b2ae35 ) & 0xFFFFFFFF
-    h ^= (h >> 16)
-    
-    return h
-
-G = nx.DiGraph()
-G.add_edges_from([(1,2),(3,2),(3,1),(4,2),(3,5),(6,5),(5,6),(7,6),(6,8),(8,6),(7,8),(8,7),(9,6),(10,9),(11,10),(11,12),(13,11)], act_prob=1.0)
-print hill_climbing(G, 2)
+    return hash_prob < resolution * G[src][dest]['act_prob']
