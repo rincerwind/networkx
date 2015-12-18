@@ -1,3 +1,8 @@
+
+'''
+The murmurHash3 function as described by Thomas Pajor
+in https://github.com/Luftschlange/ms-skim/blob/master/src/SKIM.h
+'''
 def murmurHash3(u,v,i,l, randomSeed):
     h = (randomSeed<<16)+l
     
@@ -7,25 +12,25 @@ def murmurHash3(u,v,i,l, randomSeed):
     # Hash the first vertex
     k = u
     k = (c1 * k) & 0xFFFFFFFF
-    k = ( k << 15 | k >> 17 ) & 0xFFFFFFFF
+    k = ( k << 15 | k >> 17 ) & 0xFFFFFFFF # inline rotl
     k = ( c2 * k ) & 0xFFFFFFFF
     h ^= k
-    h = ( h << 13 | h >> 19 ) & 0xFFFFFFFF
+    h = ( h << 13 | h >> 19 ) & 0xFFFFFFFF # inline rotl
     h = ( h * 5 + 0xe6546b64 ) & 0xFFFFFFFF
 
     # Hash the second vertex
     k = v
     k = (c1 * k) & 0xFFFFFFFF
-    k = ( k << 15 | k >> 17 ) & 0xFFFFFFFF
+    k = ( k << 15 | k >> 17 ) & 0xFFFFFFFF # inline rotl
     k = ( c2 * k ) & 0xFFFFFFFF
     h ^= k
-    h = ( h << 13 | h >> 19 ) & 0xFFFFFFFF
+    h = ( h << 13 | h >> 19 ) & 0xFFFFFFFF # inline rotl
     h = ( h * 5 + 0xe6546b64 ) & 0xFFFFFFFF
 
     # Hash the instance
     k = i
     k = (c1 * k) & 0xFFFFFFFF
-    k = ( k << 15 | k >> 17 ) & 0xFFFFFFFF
+    k = ( k << 15 | k >> 17 ) & 0xFFFFFFFF # inline rotl
     k = ( c2 * k ) & 0xFFFFFFFF
     h ^= k
 
